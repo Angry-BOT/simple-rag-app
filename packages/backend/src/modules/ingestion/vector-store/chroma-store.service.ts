@@ -34,23 +34,43 @@ export class ChromaStoreService implements OnModuleInit {
   private chromaClient: ChromaClient | null = null;
   private collection: Collection | null = null;
   private readonly collectionName: string;
-  private readonly persistDirectory: string;
+  private readonly chromaUrl: string;
+  private readonly apiKey: string;
+  private readonly tenant: string;
+  private readonly database: string;
   private isInitialized = false;
 
   constructor(private readonly configService: ConfigService) {
     this.collectionName =
       this.configService.get<string>('vectorDb.collectionName') || 'rag_documents';
-    this.persistDirectory =
-      this.configService.get<string>('vectorDb.persistDirectory') || './storage/vector-db';
-    this.logger.log(`Configured collection: ${this.collectionName}`);
-    this.logger.log(`Persist directory: ${this.persistDirectory}`);
+    this.chromaUrl =
+      this.configService.get<string>('vectorDb.url') || 'http://localhost:8000';
+    this.apiKey = this.configService.get<string>('vectorDb.apiKey') || '';
+    this.tenant = this.configService.get<string>('vectorDb.tenant') || 'default_tenant';
+    this.database = this.configService.get<string>('vectorDb.database') || 'default_database';
+    
+    this.logger.log(`Configured ChromaDB URL: ${this.chromaUrl}`);
+    this.logger.log(`Collection: ${this.collectionName}`);
+    if (this.apiKey) {
+      this.logger.log(`Authentication: Enabled (API Key configured)`);
+    }
   }
 
   /**
    * Initialize ChromaDB client and collection on module init
+   * Non-blocking - logs error but doesn't fail startup
    */
   async onModuleInit(): Promise<void> {
-    await this.initialize();
+    try {
+      await this.initialize();
+    } catch (error) {
+      this.logger.warn(
+        'ChromaDB initialization failed during startup. Vector store will not be available.',
+      );
+      this.logger.warn(
+        'To use ChromaDB, either start a ChromaDB server or the application will work without vector storage.',
+      );
+    }
   }
 
   /**
@@ -62,11 +82,36 @@ export class ChromaStoreService implements OnModuleInit {
     }
 
     try {
-      this.logger.log('Initializing ChromaDB client...');
+      this.logger.log(`Connecting to ChromaDB at: ${this.chromaUrl}`);
 
-      // Initialize ChromaDB client (in-memory for now, can be configured for HTTP client)
-      // For HTTP client: new ChromaClient({ path: 'http://localhost:8000' })
-      this.chromaClient = new ChromaClient();
+      // Initialize ChromaDB client with configurable URL
+      // Works for both local (Docker) and cloud-hosted ChromaDB
+      const clientConfig: {
+        path: string;
+        auth?: { provider: string; credentials: string };
+        tenant?: string;
+        database?: string;
+      } = {
+        path: this.chromaUrl,
+      };
+
+      // Add authentication if API key is provided (for cloud deployments)
+      if (this.apiKey) {
+        clientConfig.auth = {
+          provider: 'token',
+          credentials: this.apiKey,
+        };
+      }
+
+      // Add tenant/database for multi-tenant setups
+      if (this.tenant !== 'default_tenant') {
+        clientConfig.tenant = this.tenant;
+      }
+      if (this.database !== 'default_database') {
+        clientConfig.database = this.database;
+      }
+
+      this.chromaClient = new ChromaClient(clientConfig);
 
       // Get or create collection
       try {
@@ -83,15 +128,15 @@ export class ChromaStoreService implements OnModuleInit {
       }
 
       this.isInitialized = true;
-      this.logger.log('ChromaDB initialized successfully (in-memory mode)');
+      this.logger.log('ChromaDB initialized successfully');
     } catch (error) {
       this.logger.error(
         `Failed to initialize ChromaDB: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        error,
       );
-      throw new Error(
-        `ChromaDB initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      // Don't throw - let the app run without ChromaDB
+      this.isInitialized = false;
+      this.chromaClient = null;
+      this.collection = null;
     }
   }
 
@@ -117,29 +162,8 @@ export class ChromaStoreService implements OnModuleInit {
       // Generate IDs if not provided
       const documentIds = ids || documents.map((_, index) => `doc_${Date.now()}_${index}`);
 
-      // Prepare metadata
-      const metadatas = documents.map((doc) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const source = doc.metadata.source || 'unknown';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const fileType = doc.metadata.fileType || 'unknown';
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const chunkIndex = doc.metadata.chunkIndex;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const totalChunks = doc.metadata.totalChunks;
-
-        return {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          source,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          fileType,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          chunkIndex,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          totalChunks,
-          ...doc.metadata,
-        };
-      });
+      // Prepare metadata - ChromaDB only accepts string, number, boolean
+      const metadatas = documents.map((doc) => this.sanitizeMetadata(doc.metadata));
 
       this.logger.log(`Adding ${documents.length} documents to collection`);
 
@@ -342,6 +366,32 @@ export class ChromaStoreService implements OnModuleInit {
    */
   isReady(): boolean {
     return this.isInitialized && this.collection !== null;
+  }
+
+  /**
+   * Sanitize metadata to only include types supported by ChromaDB
+   * ChromaDB only supports: string, number, boolean
+   */
+  private sanitizeMetadata(metadata: Record<string, unknown>): Record<string, string | number | boolean> {
+    const sanitized: Record<string, string | number | boolean> = {};
+    
+    for (const [key, value] of Object.entries(metadata)) {
+      if (value === null || value === undefined) {
+        continue; // Skip null/undefined
+      }
+      
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        sanitized[key] = value;
+      } else if (typeof value === 'object') {
+        // Convert objects/arrays to JSON strings
+        sanitized[key] = JSON.stringify(value);
+      } else {
+        // Convert everything else to string
+        sanitized[key] = String(value);
+      }
+    }
+    
+    return sanitized;
   }
 
   /**
