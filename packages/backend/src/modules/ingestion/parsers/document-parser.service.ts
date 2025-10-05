@@ -1,7 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
-import { TextLoader } from 'langchain/document_loaders/fs/text';
-import { Document } from 'langchain/document';
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
+import { Document } from '@langchain/core/documents';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -67,25 +66,24 @@ export class DocumentParserService {
   }
 
   /**
-   * Parse text file using LangChain TextLoader
+   * Parse text file by reading content directly
    * @param filePath Path to text file
    * @returns Array with single Document object
    */
   private async parseText(filePath: string): Promise<Document[]> {
-    const loader = new TextLoader(filePath);
-    const docs = await loader.load();
+    const content = await fs.readFile(filePath, 'utf-8');
 
-    this.logger.log(`Parsed text file: ${filePath} - ${docs[0].pageContent.length} characters`);
+    this.logger.log(`Parsed text file: ${filePath} - ${content.length} characters`);
 
-    // Add file metadata
-    return docs.map((doc: Document) => ({
-      ...doc,
+    const doc = new Document({
+      pageContent: content,
       metadata: {
-        ...doc.metadata,
         source: filePath,
         fileType: 'txt',
       },
-    }));
+    });
+
+    return [doc];
   }
 
   /**
