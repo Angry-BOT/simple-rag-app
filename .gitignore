@@ -1,8 +1,17 @@
-# Nestjs specific
-/dist
+# Dependencies
 /node_modules
+/packages/*/node_modules
+
+# Build outputs
+/dist
 /build
+/packages/*/dist
+/packages/*/build
+*.tsbuildinfo
+
+# NestJS specific
 /tmp
+/.temp
 
 # Logs
 logs
@@ -15,10 +24,31 @@ lerna-debug.log*
 
 # dotenv environment variable files
 .env
+.env.local
 .env.development
 .env.test
 .env.production
 
-# temp directory
-.temp
-.tmp
+# Storage directories
+/packages/backend/storage/uploads/**/*
+/packages/backend/storage/vector-db/**/*
+!.gitkeep
+
+# Testing
+/coverage
+/.nyc_output
+
+# IDEs
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
