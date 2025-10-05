@@ -1,54 +1,65 @@
 # Dependencies
-/node_modules
-/packages/*/node_modules
+node_modules/
+package-lock.json
 
 # Build outputs
-/dist
-/build
-/packages/*/dist
-/packages/*/build
+dist/
+build/
 *.tsbuildinfo
 
-# NestJS specific
-/tmp
-/.temp
+# Environment files
+.env
+.env.local
+.env.*.local
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
-pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# dotenv environment variable files
-.env
-.env.local
-.env.development
-.env.test
-.env.production
-
-# Storage directories
-/packages/backend/storage/uploads/**/*
-/packages/backend/storage/vector-db/**/*
-!.gitkeep
-
-# Testing
-/coverage
-/.nyc_output
-
-# IDEs
-.idea
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# IDE
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
 .DS_Store
 
-# OS
+# Testing
+coverage/
+.nyc_output/
+
+# Storage (local development files)
+packages/backend/storage/uploads/**
+!packages/backend/storage/uploads/pdf/.gitkeep
+!packages/backend/storage/uploads/txt/.gitkeep
+!packages/backend/storage/uploads/html/.gitkeep
+
+packages/backend/storage/vector-db/**
+!packages/backend/storage/vector-db/.gitkeep
+
+packages/backend/storage/chroma-data/
+packages/backend/storage/chroma-data/**
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+.cache/
+
+# OS files
 Thumbs.db
+.DS_Store
+
+# Webpack
+.webpack/
+
+# ChromaDB
+chroma.log
+
+# Test files
+test-document.txt
+test-*.txt

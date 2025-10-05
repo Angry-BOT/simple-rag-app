@@ -15,6 +15,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { FilesModule } from './modules/files/files.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 /**
  * Root application module
@@ -28,6 +29,7 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
     }),
     FilesModule,
     IngestionModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [
