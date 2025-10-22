@@ -89,11 +89,12 @@ simple-rag-app/
 
 Comprehensive documentation is available in the [`docs/`](./docs/) folder:
 
-- 🚀 [Quick Start Guide](./docs/QUICKSTART.md)
-- 🏗️ [Architecture Overview](./docs/DIRECTORY_STRUCTURE.md)
-- ☁️ [Deployment Guide](./docs/DEPLOYMENT.md)
-- 🐳 [ChromaDB Setup](./docs/CHROMADB_SETUP.md)
-- 📊 [Progress Tracker](./docs/progress.md)
+- 🚀 **[Getting Started Guide](./docs/GETTING_STARTED.md)** - Complete setup instructions
+- ⚛️ [Frontend Documentation](./docs/FRONTEND_COMPLETE.md) - React app details
+- 🎯 [Backend Documentation](./docs/BACKEND_COMPLETE.md) - NestJS API details
+- 🐳 [ChromaDB Setup](./docs/CHROMADB_SETUP.md) - Vector database setup
+- ☁️ [Deployment Guide](./docs/DEPLOYMENT.md) - Production deployment
+- 📊 [Progress Tracker](./docs/progress.md) - Implementation status
 
 ## 🎯 API Endpoints
 
